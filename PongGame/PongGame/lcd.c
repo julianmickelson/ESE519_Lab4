@@ -5,6 +5,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include "lcd.h"
+#include <math.h>
 
 #define SID_DDR DDRD
 #define SID_PIN PIND
@@ -383,7 +384,6 @@ void clear_screen(void) {
   }
 }
 
-
 //lcd initialization function
 void lcd_init(void) {
   // set pin directions
@@ -441,6 +441,7 @@ inline void spiwrite(uint8_t c) {
 
  
 }
+
 void lcd_command(uint8_t c) {
   A0_PORT &= ~_BV(A0);
 
@@ -452,6 +453,7 @@ void lcd_data(uint8_t c) {
 
   spiwrite(c);
 }
+
 void lcd_set_brightness(uint8_t val) {
     lcd_command(CMD_SET_VOLUME_FIRST);
     lcd_command(CMD_SET_VOLUME_SECOND | (val & 0x3f));
@@ -484,51 +486,130 @@ void clear_buffer(uint8_t *buff) {
 // this function writes a character on the lcd at a coordinate
 void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 	for (uint8_t i =0; i<5; i++ ) {
-		buff[x + (line*128)] = pgm_read_byte(font+(c*5)+i);
+		buff[x + (line*128)] = pgm_read_byte(font+(c*5)+i); // in this example, line corresponds to page
 		x++;
 	}
 }
 
 // the most basic function, set a single pixel
 void setpixel(uint8_t *buff, uint8_t x, uint8_t y, uint8_t color) {
-	uint8_t page = (y+1)/8;
-	printf("Page = %d\n", page);
-	uint8_t shift = 8 - y%8;
-	printf("Shift = %d\n", shift);
-	uint8_t pixel = 1 << shift;
-	printf("Pixel = %d\n", pixel);
-	buff[x + page*8] = pixel;
+	
+	uint8_t page = y/8;	// map y onto page
+	uint8_t shift = 7 - y%8;	// calculate which bit to set
+	
+	buff[x + (page*128)] |= 1 << shift;	// set pixel in buffer
+	
 }
 
 // function to clear a single pixel
 void clearpixel(uint8_t *buff, uint8_t x, uint8_t y) {
 	
+	uint8_t page = y/8; // map y onto page
+	uint8_t shift = 7 - y%8;	// calculate which bit to set
+	
+	buff[x + (page*128)] &= ~(1 << shift);	// clear pixel in buffer
+	
 }
 
 // function to write a string on the lcd
 void drawstring(uint8_t *buff, uint8_t x, uint8_t line, uint8_t *c) {
-	
+	//// iterate through length of string and use drawchar
+	//// how am i supposed to determine the length of the string?
+	//int length;
+	//for(int i = 0; i < length; i++){ 
+		//drawchar(buff, x+i*5, y, *c); // draw the character?, increment the x, buffer into the function used correctly?
+		//c++; // how do i increment the pointer?
+	//}
+
 }
 
 // use bresenham's algorithm to write this function to draw a line
 void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8_t color) {
+	
+	// vertical line 
+	if (x1 == x0) {
+		// descending
+		if (y1 > y0) {
+			for (int i = 0; i <= y1 - y0; i++) {
+				setpixel(buff,x0,y0 + i,color);
+			}
+		// ascending	
+		} else {
+			for (int i = 0; i <= y0 - y1; i++) {
+				setpixel(buff,x0,y1 + i,color);
+			}
+		}			
+	}
+	
+	// horizontal line
+	else if (y1 == y0) {
+		// left to right
+		if (x1 > x0) {
+			for (int i = 0; i <= x1 - x0; i++) {
+				setpixel(buff,x0 + i,y0,color);
+			}
+		// right to left
+		} else {
+			for (int i = 0; i <= x0 - x1; i++) {
+				setpixel(buff,x1 + i,y0,color);
+			}
+		}
+	}
 
 }
 
 // function to draw a filled rectangle
 void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	
+	// draw w-many h-tall vertical lines 
+	for (int i = 0; i <= w; i++) {
+		drawline(buff,x+i,y,x+i,y+h,color);
+	}
 }
 
 
 // function to draw a rectangle
 void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	
+	// top
+	drawline(buff,x,y,x+w,y,color);
+	
+	// left
+	drawline(buff,x,y,x,y+h,color);
+	
+	// bottom
+	drawline(buff,x,y+h,x+w,y+h,color);
+	
+	// right
+	drawline(buff,x+w,y,x+w,y+h,color);
+
 }
 
 
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
+	// bresenham's again, directly copied from online 
+    //int x = 0, y = r;
+    //int d = 3 - 2 * r;
+    //while (y >= x)
+    //{
+        //// for each pixel we will
+        //// draw all eight pixels
+        //drawCircle(xc, yc, x, y);
+        //x++;
+ //
+        //// check for decision parameter
+        //// and correspondingly 
+        //// update d, x, y
+        //if (d > 0)
+        //{
+            //y--; 
+            //d = d + 4 * (x - y) + 10;
+        //}
+        //else
+            //d = d + 4 * x + 6;
+        //drawCircle(xc, yc, x, y);
+    //}
 	
 }
 
@@ -538,3 +619,14 @@ void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 	
 }
 
+void drawCircle(int xc, int yc, int x, int y) // for bresenham's circle
+{
+    //setpixel(xc+x, yc+y);
+    //setpixel(xc-x, yc+y);
+    //setpixel(xc+x, yc-y);
+    //setpixel(xc-x, yc-y);
+    //setpixel(xc+y, yc+x);
+    //setpixel(xc-y, yc+x);
+    //setpixel(xc+y, yc-x);
+    //setpixel(xc-y, yc-x);
+}

@@ -31,14 +31,14 @@ int main(void)
 	_delay_ms(50000);
 	clear_buffer(buff);
 	
-	uint8_t x = 10;
-	uint8_t y = 10;
+	fillrect(buff,0,0,20,20,displayChar);
+	write_buffer(buff);
+	_delay_ms(30000);
+	drawrect(buff,30,30,20,20,displayChar);
+	write_buffer(buff);
+	_delay_ms(30000);
 
-	while (1)
-	{
-		setpixel(buff,x,y,displayChar);
-		write_buffer(buff);
-		_delay_ms(10000); 
+	while (1) {
 	}
 }
 
