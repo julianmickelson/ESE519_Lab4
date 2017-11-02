@@ -102,9 +102,9 @@ int main(void)
 	
 	// ADC initialization
 	uart_init();
-	//sei();
-	//ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // prescale /128
-	//ADCSRA |= (1 << ADIE); // enable interrupt
+	sei();
+	ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // prescale /128
+	ADCSRA |= (1 << ADIE); // enable interrupt
 
 	while (1) {
 		
@@ -289,39 +289,39 @@ void beepTone() {
 
 void checkInput() {
 	
-	//// using port c, 0 - 3
-	//// C0 -> X-
-	//// C1 -> Y+
-	//// C2 -> X+
-	//// C3 -> Y-
-	//
-	//// step 1: set Xs digital - set X- high and X+ low
-	//
-	//DDRC |= (1 << 0) | (1 << 2); // Xs output
-	//PORTC |= (1 << 0); // X-/C0 high
-	//PORTC &= ~(1 << 2); // X+/C2 low
-	//
-	//// step 2: set Y- and Y+ to analog input and read Y-
-	//
-	//DDRC &= ~(1 << 1);
-	//PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
-	//
-	//DIDR0 |= (1 << ADC3D); // disable digital input
-	//
-	//ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
-	//ADCSRA |= (1 << ADEN); // enable system
-	//
+	// using port c, 0 - 3
+	// C0 -> X-
+	// C1 -> Y+
+	// C2 -> X+
+	// C3 -> Y-
+	
+	// step 1: set Xs digital - set X- high and X+ low
+	
+	DDRC |= (1 << 0) | (1 << 2); // Xs output
+	PORTC |= (1 << 0); // X-/C0 high
+	PORTC &= ~(1 << 2); // X+/C2 low
+	
+	// step 2: set Y- and Y+ to analog input and read Y-
+	
+	DDRC &= ~(1 << 1);
+	PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
+	
+	DIDR0 |= (1 << ADC3D); // disable digital input
+	
+	ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
+	ADCSRA |= (1 << ADEN); // enable system
+	
 	//ADCSRA |= (1 << ADSC); // start
 	//
 	//while(bit_is_clear(ADCSRA,ADIF)); // stall until conversion is finished
 	//
 	//int ycoord = ADC; // store ADC value as y coordinate
 	//ADCSRA &= ~(1 << ADEN); // disable system
-	//
+	
 	//printf("%s", "ycoord = ");
 	//printf("%d",ycoord);
 	//printf("\n");
-	//
+	
 	//// step 3: Ys to digital and Y+ low and Y- high
 	//
 	//DDRC |= (1 << 1); // Y+/C1 to output
@@ -349,9 +349,9 @@ void checkInput() {
 	//int xcoord = ADC; // store ADC val
 	//ADCSRA &= ~(1 << ADEN); // disable system
 	//
-	//printf("%s", "xcoord = ");
-	//printf("%d",xcoord);
-	//printf("\n");
+	////printf("%s", "xcoord = ");
+	////printf("%d",xcoord);
+	////printf("\n");
 	
 	// left player
 	if (Xd < WIDTH/4) {
