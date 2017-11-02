@@ -35,8 +35,8 @@ uint8_t Xt;
 uint8_t Yt;
 
 // initialize the display coordinates
-uint8_t Xd;
-uint8_t Yd;
+uint8_t Xd = 12;
+uint8_t Yd = 5;
 
 // initialize score variables
 char scoreL = '0';
@@ -57,28 +57,28 @@ int ballVY;
 // initialize flag for start of new round
 uint8_t newRound = 1;
 
-// initialize function to play sounds
+// function to play sounds
 void beepTone();
 
-// initialize function to check touchscreen and update paddle 
+// function to check touchscreen and update paddle 
 void checkInput();
 
-// initialize function to update game parameters 
+// function to update game parameters 
 void update();
 
-// initialize function to draw graphics 
+// function to draw graphics 
 void draw();
 
-// initialize function to check horizontal and vertical collisions of the ball
+// function to check horizontal and vertical collisions of the ball
 int checkCollisions();
 
-// initialize function to check if someone has scored
+// function to check if someone has scored
 int checkScore();
 
-// initialize function to read touchscreen X coordinate
+// function to read touchscreen X coordinate
 int readX();
 
-// initialize function to read touchscreen Y coordinate
+// function to read touchscreen Y coordinate
 int readY();
 
 int main(void)
@@ -163,13 +163,12 @@ void update() {
 		ballY = HEIGHT/2;
 		
 		srand(seed);
-		seed++;
 		
 		// start ball in random direction and speed
-		ballVX = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
-		while(!ballVY) {
-			ballVY = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
+		while(!ballVX) {
+			ballVX = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
 		}
+			ballVY = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
 		
 		newRound = 0;
 	}
@@ -353,4 +352,30 @@ void checkInput() {
 	//printf("%s", "xcoord = ");
 	//printf("%d",xcoord);
 	//printf("\n");
+	
+	// left player
+	if (Xd < WIDTH/4) {
+		// tap above paddle
+		if (Yd < paddleL) {
+			paddleL -= 3;
+		}
+		
+		// tap below paddle
+		else if (Yd > paddleL + PADDLE_LENGTH) {
+			paddleL += 3;
+		}
+	}
+	
+	// right player
+	else if (Xd > 0.75*WIDTH) {
+		// tap above paddle
+		if (Yd < paddleR) {
+			paddleR -= 3;
+		}
+		
+		// tap below paddle
+		else if (Yd > paddleR + PADDLE_LENGTH) {
+			paddleR += 3;
+		}
+	}
 }
