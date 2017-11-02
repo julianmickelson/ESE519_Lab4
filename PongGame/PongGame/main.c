@@ -1,17 +1,16 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include <avr/sfr_defs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <util/delay.h>
-<<<<<<< HEAD
 #include <math.h>
 #include "uart.h"
-=======
->>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 #include "lcd.h"
 
+#define F_CPU 16000000UL
 #define FREQ 16000000
 #define BAUD 9600
 #define HIGH 1
@@ -20,7 +19,6 @@
 #define HEIGHT 64
 #define BUFFER (WIDTH*HEIGHT)
 #define BLACK 0x000001
-<<<<<<< HEAD
 #define PADDLE_LENGTH 10
 #define BALL_RADIUS 2
 #define X_MINUS 0
@@ -62,19 +60,17 @@ uint8_t newRound = 1;
 // function to play sounds
 void beepTone();
 
-// function to check touchscreen and update paddle 
+// function to check touchscreen and update paddle
 void checkInput();
 
-// function to update game parameters 
+// function to update game parameters
 void update();
 
-// function to draw graphics 
+// function to draw graphics
 void draw();
 
 // function to check horizontal and vertical collisions of the ball
 int checkCollisions();
-=======
->>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 
 // function to check if someone has scored
 int checkScore();
@@ -87,7 +83,6 @@ int readY();
 
 int main(void)
 {
-<<<<<<< HEAD
 	// setting up the gpio for backlight
 	DDRD |= 0x80;
 	PORTD &= ~0x80;
@@ -98,14 +93,6 @@ int main(void)
 	PORTB |= 0x00;
 	
 	// lcd initialization
-=======
-	//setting up the gpio for backlight
-	DDRD |= 0x1C;
-	PORTD &= ~0x1C;
-	PORTD |= 0x00;
-	
-	//lcd initialisation
->>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 	lcd_init();
 	lcd_command(CMD_DISPLAY_ON);
 	lcd_set_brightness(0x18);
@@ -113,12 +100,12 @@ int main(void)
 	_delay_ms(50000);
 	clear_buffer(buff);
 	
-<<<<<<< HEAD
 	// ADC initialization
 	uart_init();
-	//sei();
-	//ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // prescale /128
-	//ADCSRA |= (1 << ADIE); // enable interrupt
+	sei();
+	ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // prescale /128
+	ADMUX |= (1 << REFS0); // AREF = AVcc
+	_delay_ms(50);
 
 	while (1) {
 		
@@ -171,7 +158,7 @@ void draw() {
 void update() {
 	
 	// check if start of a round
-	if (newRound) {	
+	if (newRound) {
 		// reset ball position
 		ballX = WIDTH/2;
 		ballY = HEIGHT/2;
@@ -182,40 +169,40 @@ void update() {
 		while(!ballVX) {
 			ballVX = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
 		}
-			ballVY = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
+		ballVY = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
 		
 		newRound = 0;
 	}
 	
-		
+	
 	// update ball position
 	ballX += ballVX;
 	ballY += ballVY;
 	
 	// check for paddle collision
 	if (checkCollisions()) {
-			
-			// find where on paddle ball hit
-			int hitPos;
-			
-			// left paddle collision
-			if (ballVX < 0) {
-				hitPos = (paddleL + (PADDLE_LENGTH/2)) - ballY;
-			} 
-			
-			// right paddle collision
-			else {
-				hitPos = (paddleR + (PADDLE_LENGTH/2)) - ballY;
-			}
-			
-			// change ball y angle based on where on paddle it hit
-			ballVY -= hitPos/2;
-			
-			// reverse ball x direction
-			ballVX = -ballVX;
-			
-			// make noise
-			beepTone();
+		
+		// find where on paddle ball hit
+		int hitPos;
+		
+		// left paddle collision
+		if (ballVX < 0) {
+			hitPos = (paddleL + (PADDLE_LENGTH/2)) - ballY;
+		}
+		
+		// right paddle collision
+		else {
+			hitPos = (paddleR + (PADDLE_LENGTH/2)) - ballY;
+		}
+		
+		// change ball y angle based on where on paddle it hit
+		ballVY -= hitPos/2;
+		
+		// reverse ball x direction
+		ballVX = -ballVX;
+		
+		// make noise
+		beepTone();
 	}
 	
 	// check for ceiling collision
@@ -251,7 +238,7 @@ int checkCollisions() {
 		// ball is left of right paddle
 		if (ballX + BALL_RADIUS < WIDTH - 4) {
 			return 0;
-		} 
+		}
 		
 		// ball is over top of right paddle or under bottom right paddle
 		else if ((ballY - BALL_RADIUS > paddleR + PADDLE_LENGTH) || (ballY + BALL_RADIUS < paddleR)) {
@@ -263,12 +250,12 @@ int checkCollisions() {
 			return 1;
 		}
 		
-	} else {
+		} else {
 		
 		// ball is over top of left paddle or under bottom left paddle
 		if ((ballY - BALL_RADIUS > paddleL + PADDLE_LENGTH) || (ballY + BALL_RADIUS < paddleL)) {
 			return 0;
-		} 
+		}
 		
 		// collision with left paddle
 		else {
@@ -299,84 +286,79 @@ int checkScore() {
 // initialize function to play sounds
 void beepTone() {
 	
-=======
-	fillrect(buff,0,0,20,20,displayChar);
-	write_buffer(buff);
-	_delay_ms(30000);
-	drawrect(buff,30,30,20,20,displayChar);
-	write_buffer(buff);
-	_delay_ms(30000);
-
-	while (1) {
-	}
->>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 }
 
 void checkInput() {
 	
-	//// using port c, 0 - 3
-	//// C0 -> X-
-	//// C1 -> Y+
-	//// C2 -> X+
-	//// C3 -> Y-
-	//
-	//// step 1: set Xs digital - set X- high and X+ low
-	//
-	//DDRC |= (1 << 0) | (1 << 2); // Xs output
-	//PORTC |= (1 << 0); // X-/C0 high
-	//PORTC &= ~(1 << 2); // X+/C2 low
-	//
-	//// step 2: set Y- and Y+ to analog input and read Y-
-	//
-	//DDRC &= ~(1 << 1);
-	//PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
-	//
-	//DIDR0 |= (1 << ADC3D); // disable digital input
-	//
-	//ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
-	//ADCSRA |= (1 << ADEN); // enable system
-	//
-	//ADCSRA |= (1 << ADSC); // start
-	//
-	//while(bit_is_clear(ADCSRA,ADIF)); // stall until conversion is finished
-	//
-	//int ycoord = ADC; // store ADC value as y coordinate
-	//ADCSRA &= ~(1 << ADEN); // disable system
-	//
-	//printf("%s", "ycoord = ");
-	//printf("%d",ycoord);
-	//printf("\n");
-	//
-	//// step 3: Ys to digital and Y+ low and Y- high
-	//
-	//DDRC |= (1 << 1); // Y+/C1 to output
-	//PORTC &= ~(1 << 1); // Y+/C1 to low
-	//
-	//DDRC |= (1 << 3); // Y-/C3 to output
-	//PORTC |= (1 << 3); // Y-/C3 to high
-	//
-	//// step 4:
-	//
-	//DDRC &= ~(1 << 2);
-	//PORTC &= ~(1 << 2); // X+/C2 to input and disable pull-up
-	//
-	//DIDR0 |= (1 << ADC0D); // disable digital input
-	//
-	//ADMUX &= ~(1 << MUX0);
-	//ADMUX &= ~(1 << MUX1); // X-/C0 ADC0
-	//ADCSRA |= (1 << ADEN); // enable system
-	//DIDR0 |= (1 << ADC0D); // disable digital input
-	//
-	//ADCSRA |= (1 << ADSC); // start.
-	//
-	//while(bit_is_clear(ADCSRA,ADIF)); // stall
-	//
-	//int xcoord = ADC; // store ADC val
-	//ADCSRA &= ~(1 << ADEN); // disable system
-	//
-	//printf("%s", "xcoord = ");
-	//printf("%d",xcoord);
-	//printf("\n");
+// using port c, 0 - 3
+// C0 -> X-
+// C1 -> Y+
+// C2 -> X+
+// C3 -> Y-
+
+// step 1: set Xs digital - set X- high and X+ low
+
+DDRC |= (1 << 0) | (1 << 2); // Xs output
+PORTC |= (1 << 0); // X-/C0 high
+PORTC &= ~(1 << 2); // X+/C2 low
+
+// step 2: set Y- and Y+ to analog input and read Y-
+
+DDRC &= ~(1 << 1);
+PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
+
+DDRC &= ~(1 << 3);
+PORTC &= ~(1 << 3); // Y-/C3 to input and disable pull-up
+
+DIDR0 |= (1 << ADC3D); // disable digital input
+
+ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
+ADCSRA |= (1 << ADEN); // enable system
+
+ADCSRA |= (1 << ADSC); // start
+
+while(bit_is_clear(ADCSRA,ADIF)); // stall until conversion is finished
+
+int ycoord = ADC; // store ADC value as y coordinate
+ADCSRA &= ~(1 << ADEN); // disable system
+
+printf("%s", "ycoord = ");
+printf("%d",ycoord);
+printf("\n");
+
+// step 3: Ys to digital and Y+ low and Y- high
+
+DDRC |= (1 << 1); // Y+/C1 to output
+PORTC &= ~(1 << 1); // Y+/C1 to low
+
+DDRC |= (1 << 3); // Y-/C3 to output
+PORTC |= (1 << 3); // Y-/C3 to high
+
+// step 4:
+
+DDRC &= ~(1 << 2);
+PORTC &= ~(1 << 2); // X+/C2 to input and disable pull-up
+
+DDRC &= ~(1 << 0);
+PORTC &= ~(1 << 0); // X-/C0 to input and disable pull-up
+
+DIDR0 |= (1 << ADC0D); // disable digital input
+
+ADMUX &= ~(1 << MUX0);
+ADMUX &= ~(1 << MUX1); // X-/C0 ADC0
+ADCSRA |= (1 << ADEN); // enable system
+DIDR0 |= (1 << ADC0D); // disable digital input
+
+ADCSRA |= (1 << ADSC); // start.
+
+while(bit_is_clear(ADCSRA,ADIF)); // stall
+
+int xcoord = ADC; // store ADC val
+ADCSRA &= ~(1 << ADEN); // disable system
+
+//printf("%s", "xcoord = ");
+//printf("%d",xcoord);
+//printf("\n");
 	
 	// left player
 	if (Xd < WIDTH/4) {
