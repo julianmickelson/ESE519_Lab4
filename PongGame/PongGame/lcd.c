@@ -486,7 +486,7 @@ void clear_buffer(uint8_t *buff) {
 // this function writes a character on the lcd at a coordinate
 void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 	for (uint8_t i =0; i<5; i++ ) {
-		buff[x + (line*128) - 1] = pgm_read_byte(font+(c*5)+i); // in this example, line corresponds to page
+		buff[x + (line*128) - 1] = pgm_read_byte(font+(c*5)+i); // line corresponds to page
 		x++;
 	}
 }
@@ -494,20 +494,28 @@ void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 // the most basic function, set a single pixel
 void setpixel(uint8_t *buff, uint8_t x, uint8_t y, uint8_t color) {
 	
-	uint8_t page = y/8;	// map y onto page
-	uint8_t shift = 8 - y%8;	// calculate which bit to set
+	// remap for 0 indexing
+	x--;
+	y--;
 	
-	buff[x + (page*128) - 1] |= 1 << shift;	// set pixel in buffer
+	uint8_t page = y/8;	// map y onto page
+	uint8_t shift = 7 - y%8;	// calculate which bit to set
+	
+	buff[x + (page*128)] |= 1 << shift;	// set pixel in buffer
 	
 }
 
 // function to clear a single pixel
 void clearpixel(uint8_t *buff, uint8_t x, uint8_t y) {
 	
-	uint8_t page = y/8; // map y onto page
-	uint8_t shift = 8 - y%8;	// calculate which bit to set
+	// remap for 0 indexing
+	x--;
+	y--;
 	
-	buff[x + (page*128) - 1] &= ~(1 << shift);	// clear pixel in buffer
+	uint8_t page = y/8; // map y onto page
+	uint8_t shift = 7 - y%8;	// calculate which bit to set
+	
+	buff[x + (page*128)] &= ~(1 << shift);	// clear pixel in buffer
 	
 }
 
@@ -561,8 +569,8 @@ void drawline(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1,uint8
 void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	
 	// draw w-many h-tall vertical lines 
-	for (int i = 0; i <= w; i++) {
-		drawline(buff,x+i,y,x+i,y+h,color);
+	for (int i = 0; i < w; i++) {
+		drawline(buff,x+i,y,x+i,y+h-1,color);
 	}
 }
 
@@ -570,25 +578,25 @@ void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t c
 void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	
 	// top
-	drawline(buff,x,y,x+w,y,color);
+	drawline(buff,x,y,x+w-1,y,color);
 	
 	// left
-	drawline(buff,x,y,x,y+h,color);
+	drawline(buff,x,y,x,y+h-1,color);
 	
 	// bottom
-	drawline(buff,x,y+h,x+w,y+h,color);
+	drawline(buff,x,y+h-1,x+w-1,y+h-1,color);
 	
 	// right
-	drawline(buff,x+w,y,x+w,y+h,color);
+	drawline(buff,x+w-1,y,x+w-1,y+h-1,color);
 
 }
 
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
     
-	int x = r - 1;
+	int x = r;
     int y = 0;
-    int dx = 3;
+    int dx = 1;
     int dy = 1;
     int err = dx - (r << 1);
 
@@ -620,4 +628,33 @@ void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 // function to draw a filled circle
 void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 	
+	int x = r;
+	int y = 0;
+	int dx = 1;
+	int dy = 1;
+	int err = dx - (r << 1);
+
+	while (x >= y)
+	{
+		drawline(buff, x0, y0 + y, x0 + x, y0 + y, color);
+		drawline(buff, x0, y0 + x, x0 + y, y0 + x, color);
+		drawline(buff, x0, y0 + x, x0 - y, y0 + x, color);
+		drawline(buff, x0, y0 + y, x0 - x, y0 + y, color);
+		drawline(buff, x0, y0 - y, x0 - x, y0 - y, color);
+		drawline(buff, x0, y0 - x, x0 - y, y0 - x, color);
+		drawline(buff, x0, y0 - x, x0 + y, y0 - x, color);
+		drawline(buff, x0, y0 - y, x0 + x, y0 - y, color);
+
+		if (err <= 0) {
+			y++;
+			err += dy;
+			dy += 2;
+		}
+			
+		if (err > 0) {
+			x--;
+			dx += 2;
+			err += (-r << 1) + dx;
+		}
+	}
 }
