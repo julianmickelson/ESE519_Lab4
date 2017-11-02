@@ -113,7 +113,7 @@ uint8_t buff[128*64/8] = {
 
 //font to print ascii characters
 const uint8_t font[] PROGMEM = {
-	0x0, 0x0, 0x0, 0x0, 0x0,       //ASC(00)
+	0x0, 0x0, 0x0, 0x0, 0x0,       // Ascii 0
 	0x7C, 0xDA, 0xF2, 0xDA, 0x7C,  //ASC(01)
 	0x7C, 0xD6, 0xF2, 0xD6, 0x7C,  //ASC(02)
 	0x38, 0x7C, 0x3E, 0x7C, 0x38,
@@ -486,7 +486,11 @@ void clear_buffer(uint8_t *buff) {
 // this function writes a character on the lcd at a coordinate
 void drawchar(uint8_t *buff, uint8_t x, uint8_t line, uint8_t c) {
 	for (uint8_t i =0; i<5; i++ ) {
+<<<<<<< HEAD
 		buff[x + (line*128) - 1] = pgm_read_byte(font+(c*5)+i); // line corresponds to page
+=======
+		buff[x + (line*128)] = pgm_read_byte(font+(c*5)+i); // in this example, line corresponds to page
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 		x++;
 	}
 }
@@ -521,12 +525,13 @@ void clearpixel(uint8_t *buff, uint8_t x, uint8_t y) {
 
 // function to write a string on the lcd
 void drawstring(uint8_t *buff, uint8_t x, uint8_t line, uint8_t *c) {
-	
-	// run through all of string (terminated at '\0' at end of string)
-	for(int i = 0; *c != 0; i++) { 
-		drawchar(buff, x+i*5, line, *c); // draw the character and shift the x position
-		c++; // how do i increment through the string
-	}
+	//// iterate through length of string and use drawchar
+	//// how am i supposed to determine the length of the string?
+	//int length;
+	//for(int i = 0; i < length; i++){ 
+		//drawchar(buff, x+i*5, y, *c); // draw the character?, increment the x, buffer into the function used correctly?
+		//c++; // how do i increment the pointer?
+	//}
 
 }
 
@@ -574,6 +579,7 @@ void fillrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t c
 	}
 }
 
+
 // function to draw a rectangle
 void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t color) {
 	
@@ -591,8 +597,10 @@ void drawrect(uint8_t *buff,uint8_t x, uint8_t y, uint8_t w, uint8_t h,uint8_t c
 
 }
 
+
 // function to draw a circle
 void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
+<<<<<<< HEAD
     
 	int x = r;
     int y = 0;
@@ -623,11 +631,38 @@ void drawcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 		    err += (-r << 1) + dx;
 	    }
     }
+=======
+	// bresenham's again, directly copied from online 
+    //int x = 0, y = r;
+    //int d = 3 - 2 * r;
+    //while (y >= x)
+    //{
+        //// for each pixel we will
+        //// draw all eight pixels
+        //drawCircle(xc, yc, x, y);
+        //x++;
+ //
+        //// check for decision parameter
+        //// and correspondingly 
+        //// update d, x, y
+        //if (d > 0)
+        //{
+            //y--; 
+            //d = d + 4 * (x - y) + 10;
+        //}
+        //else
+            //d = d + 4 * x + 6;
+        //drawCircle(xc, yc, x, y);
+    //}
+	
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 }
+
 
 // function to draw a filled circle
 void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 	
+<<<<<<< HEAD
 	int x = r;
 	int y = 0;
 	int dx = 1;
@@ -657,4 +692,18 @@ void fillcircle(uint8_t *buff,uint8_t x0, uint8_t y0, uint8_t r,uint8_t color) {
 			err += (-r << 1) + dx;
 		}
 	}
+=======
+}
+
+void drawCircle(int xc, int yc, int x, int y) // for bresenham's circle
+{
+    //setpixel(xc+x, yc+y);
+    //setpixel(xc-x, yc+y);
+    //setpixel(xc+x, yc-y);
+    //setpixel(xc-x, yc-y);
+    //setpixel(xc+y, yc+x);
+    //setpixel(xc-y, yc+x);
+    //setpixel(xc+y, yc-x);
+    //setpixel(xc-y, yc-x);
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 }

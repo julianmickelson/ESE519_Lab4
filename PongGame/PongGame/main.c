@@ -1,16 +1,17 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
-#include <avr/sfr_defs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <util/delay.h>
+<<<<<<< HEAD
 #include <math.h>
 #include "uart.h"
+=======
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 #include "lcd.h"
 
-#define F_CPU 16000000UL
 #define FREQ 16000000
 #define BAUD 9600
 #define HIGH 1
@@ -19,6 +20,7 @@
 #define HEIGHT 64
 #define BUFFER (WIDTH*HEIGHT)
 #define BLACK 0x000001
+<<<<<<< HEAD
 #define PADDLE_LENGTH 10
 #define BALL_RADIUS 2
 #define X_MINUS 0
@@ -71,6 +73,8 @@ void draw();
 
 // function to check horizontal and vertical collisions of the ball
 int checkCollisions();
+=======
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 
 // function to check if someone has scored
 int checkScore();
@@ -83,6 +87,7 @@ int readY();
 
 int main(void)
 {
+<<<<<<< HEAD
 	// setting up the gpio for backlight
 	DDRD |= 0x80;
 	PORTD &= ~0x80;
@@ -93,6 +98,14 @@ int main(void)
 	PORTB |= 0x00;
 	
 	// lcd initialization
+=======
+	//setting up the gpio for backlight
+	DDRD |= 0x1C;
+	PORTD &= ~0x1C;
+	PORTD |= 0x00;
+	
+	//lcd initialisation
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 	lcd_init();
 	lcd_command(CMD_DISPLAY_ON);
 	lcd_set_brightness(0x18);
@@ -100,6 +113,7 @@ int main(void)
 	_delay_ms(50000);
 	clear_buffer(buff);
 	
+<<<<<<< HEAD
 	// ADC initialization
 	uart_init();
 	sei();
@@ -285,6 +299,17 @@ int checkScore() {
 // initialize function to play sounds
 void beepTone() {
 	
+=======
+	fillrect(buff,0,0,20,20,displayChar);
+	write_buffer(buff);
+	_delay_ms(30000);
+	drawrect(buff,30,30,20,20,displayChar);
+	write_buffer(buff);
+	_delay_ms(30000);
+
+	while (1) {
+	}
+>>>>>>> parent of 4dfbaf6... Halloween Spooky Code (why doesn't ADC work)
 }
 
 void checkInput() {
