@@ -34,10 +34,6 @@
 // 0 is one-player (accel mode), 1 is two-player
 #define GAME_MODE 0
 
-// random array of initial velocities
-uint8_t randArr[6] = {-3, -2, -1, 1, 2, 3};
-uint8_t seed = 123;
-
 // initialize the touch screen coordinates
 uint8_t Xt;
 uint8_t Yt;
@@ -51,7 +47,7 @@ char scoreL = '0';
 char scoreR = '0';
 
 // initialize the L and R paddle coordinates
-uint8_t paddleL = 4 + HEIGHT/2 - PADDLE_LENGTH/2;
+uint8_t paddleL = HEIGHT/2 - PADDLE_LENGTH/2;
 uint8_t paddleR = HEIGHT/2 - PADDLE_LENGTH/2;
 
 // initialize the ball positions
@@ -95,6 +91,7 @@ int readY();
 // function to process accelerometer
 int accfilt();
 
+const int test = 5;
 
 int main(void)
 {
@@ -162,7 +159,6 @@ int main(void)
 		
 		// update graphics
 		draw();
-
 	}
 	
 }
@@ -209,20 +205,33 @@ void update() {
 		ballY = HEIGHT/2;
 		
 		// start ball in random direction and speed
-		if ((float)rand()/RAND_MAX > 0.5) {
-			ballVX = 1;
-		} else {
+		double randVal1 = (float)rand()/RAND_MAX;
+		if (randVal1 < 0.25) {
+			ballVX = -2;
+		}
+		else if (randVal1 < 0.5) {
 			ballVX = -1;
 		}
-		
-		double randVal = (float)rand()/RAND_MAX;
-		if (randVal < 0.33) {
-			ballVY = 1;
-		} 
-		else if (randVal < 0.66) {
-			ballVY = -0;
+		else if (randVal1 < 0.75) {
+			ballVX = 1;
 		} else {
-			ballVY = -1;
+			ballVX = 2;
+		}
+		
+		double randVal2 = (float)rand()/RAND_MAX;
+		if (randVal2 < 0.2) {
+			ballVY = -2;
+		}
+		else if (randVal2 < 0.4) {
+			ballVX = -1;
+		}
+		else if (randVal2 < 0.6) {
+			ballVY = 0;
+		}
+		else if (randVal2 < 0.8) {
+			ballVY = 1;
+		} else {
+			ballVY = 2;
 		}
 		
 		// reset flag
@@ -480,45 +489,59 @@ void checkInput() {
 	// shifting from xcoord & ycoord to Xd and Yd
 	// for x: mappin from 150-850 to 1 - 128
 	// for y: mappin from 90 - 900 to 1 - 64
-
-	if (xcoord < 800 && ycoord < 800) { // check that it's even being touched
-
-		Xd = (xcoord - 140)/(float)700 * WIDTH;
-		Yd = (ycoord - 90)/(float)800 * HEIGHT;
-
-			printf("%s", "xd = ");
-			printf("%d",xcoord);
-			printf("\n");
-
-			printf("%s", "yd = ");
-			printf("%d",ycoord);
-			printf("\n");
 	
+	printf("xd = %d     yd = %d\n", xcoord, ycoord);
+
+	if (ycoord < 730) { // check that it's even being touched
+
+		Xd = (930 - (xcoord - 70))/(float)930 * WIDTH;
+		Yd = (ycoord - 110)/(float)730 * HEIGHT;
 
 		// left player
 		if (Xd < WIDTH/4) {
-			// tap above paddle
-			if (Yd < paddleL) {
-				paddleL -= 3;
+			// tap top half of screen
+			if (Yd < HEIGHT/2) {
+				paddleL -= 2;
 			}
 		
-			// tap below paddle
-			else if (Yd > paddleL + PADDLE_LENGTH) {
-				paddleL += 3;
+			// tap bottom half of screen
+			else {
+				paddleL += 2;
 			}
 		}
 	
 		// right player
 		else if (Xd > 0.75*WIDTH) {
-			// tap above paddle
-			if (Yd < paddleR) {
-				paddleR -= 3;
+			// tap top half of screen
+			if (Yd < HEIGHT/2) {
+				paddleR -= 2;
 			}
+			
+			// tap bottom half of screen
+			else {
+				paddleR += 2;
+			}
+		}
+	
+		// make sure paddle is in bounds
+		// paddle is too low
+		if (paddleL + PADDLE_LENGTH > HEIGHT - 1) {
+			paddleL = HEIGHT - PADDLE_LENGTH;
+		}
+				
+		// paddle is too high
+		if (paddleL < 2) {
+			paddleL = 2;
+		}
 		
-			// tap below paddle
-			else if (Yd > paddleR + PADDLE_LENGTH ) {
-				paddleR += 3;
-			}
+		// paddle is too low
+		if (paddleR + PADDLE_LENGTH > HEIGHT - 1) {
+			paddleR = HEIGHT - PADDLE_LENGTH;
+		}
+				
+		// paddle is too high
+		if (paddleR < 2) {
+			paddleR = 2;
 		}
 	}
 }
@@ -575,9 +598,6 @@ int accfilt(void){
 	}
 
 	int avera = sum/10;
-	
-	//printf("%s", "accel = ");
-	//printf("%d", avera);
 	
 	if (avera < 305){
 		return -1;
