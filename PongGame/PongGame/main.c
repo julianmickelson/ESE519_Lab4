@@ -1,3 +1,11 @@
+/*
+ * Pong.c
+ *
+ * Created: 11/2/2017 4:51:43 PM
+ * Author : mylescai
+ */ 
+
+
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <avr/sfr_defs.h>
@@ -7,6 +15,7 @@
 #include <stdbool.h>
 #include <util/delay.h>
 #include <math.h>
+#include <time.h>
 #include "uart.h"
 #include "lcd.h"
 
@@ -21,22 +30,21 @@
 #define BLACK 0x000001
 #define PADDLE_LENGTH 10
 #define BALL_RADIUS 2
-#define X_MINUS 0
-#define X_PLUS 2
-#define Y_MINUS 1
-#define Y_PLUS 3
+
+// 0 is one-player (accel mode), 1 is two-player
+#define GAME_MODE 0
 
 // random array of initial velocities
 uint8_t randArr[6] = {-3, -2, -1, 1, 2, 3};
-uint8_t seed = 22;
+uint8_t seed = 123;
 
 // initialize the touch screen coordinates
 uint8_t Xt;
 uint8_t Yt;
 
 // initialize the display coordinates
-uint8_t Xd = 12;
-uint8_t Yd = 5;
+uint8_t Xd;
+uint8_t Yd;
 
 // initialize score variables
 char scoreL = '0';
@@ -72,6 +80,9 @@ void draw();
 // function to check horizontal and vertical collisions of the ball
 int checkCollisions();
 
+// function to process accelerometer
+void pongBot();
+
 // function to check if someone has scored
 int checkScore();
 
@@ -81,8 +92,18 @@ int readX();
 // function to read touchscreen Y coordinate
 int readY();
 
+// function to process accelerometer
+int accfilt();
+
+
 int main(void)
 {
+	// init rand/time
+	srand(time(NULL));
+	
+	// init print
+	uart_init();
+
 	// setting up the gpio for backlight
 	DDRD |= 0x80;
 	PORTD &= ~0x80;
@@ -101,18 +122,42 @@ int main(void)
 	clear_buffer(buff);
 	
 	// ADC initialization
-	uart_init();
-	sei();
 	ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // prescale /128
 	ADMUX |= (1 << REFS0); // AREF = AVcc
 	_delay_ms(50);
+	
+	// accel initialization
+	DIDR0 |= (1 << ADC5D); // disable digital input
 
 	while (1) {
 		
-		// check touchscreen and update paddle
-		checkInput();
+		// touchscreen mode
+		if (GAME_MODE) {
+			// check touchscreen and update paddle
+			checkInput();
+		} 
 		
-		// run gameplay cycle
+		// accelerometer + pong bot mode
+		else {
+			// computer update paddle
+			pongBot();
+
+			// update user paddle based on 
+			paddleL += accfilt();
+			
+			// make sure paddle is in bounds
+			// paddle is too low
+			if (paddleL + PADDLE_LENGTH > HEIGHT - 1) {
+				paddleL = HEIGHT - PADDLE_LENGTH;
+			}
+					
+			// paddle is too high
+			if (paddleL < 2) {
+				paddleL = 2;
+			}
+		}
+		
+		// run game play cycle
 		update();
 		
 		// update graphics
@@ -163,18 +208,28 @@ void update() {
 		ballX = WIDTH/2;
 		ballY = HEIGHT/2;
 		
-		srand(seed);
-		
 		// start ball in random direction and speed
-		while(!ballVX) {
-			ballVX = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
+		if ((float)rand()/RAND_MAX > 0.5) {
+			ballVX = 1;
+		} else {
+			ballVX = -1;
 		}
-		ballVY = -2 + (int)((double)rand() / ((double)RAND_MAX + 1) * 5);
 		
+		double randVal = (float)rand()/RAND_MAX;
+		if (randVal < 0.33) {
+			ballVY = 1;
+		} 
+		else if (randVal < 0.66) {
+			ballVY = -0;
+		} else {
+			ballVY = -1;
+		}
+		
+		// reset flag
 		newRound = 0;
 	}
-	
-	
+
+		
 	// update ball position
 	ballX += ballVX;
 	ballY += ballVY;
@@ -205,7 +260,7 @@ void update() {
 		beepTone();
 	}
 	
-	// check for ceiling collision
+	// check for ceiling  or floor collision
 	if ((ballY - BALL_RADIUS < 3) || (ballY + BALL_RADIUS > HEIGHT - 1)) {
 		// reverse ball y direction
 		ballVY = -ballVY;
@@ -214,12 +269,29 @@ void update() {
 		beepTone();
 	}
 	
+	// make sure ball isn't going too fast
+	if (ballVX < -2) {
+		ballVX = -2;
+	}
+	
+	if (ballVX > 2) {
+		ballVX = 2;
+	}
+	
+	if (ballVY < -2) {
+		ballVY = -2;
+	}
+	
+	if (ballVY > 2) {
+		ballVY = 2;
+	}
+	
+	
+	
 	// check if someone scored
 	if (checkScore()) {
 		// make noise
 		beepTone();
-		
-		// change screen color
 		
 		// reset new round flag
 		newRound = 1;
@@ -233,7 +305,7 @@ void update() {
 int checkCollisions() {
 	
 	// ball is right of left paddle
-	if (ballX - BALL_RADIUS > 5) {
+	if (ballX - BALL_RADIUS > 4) {
 
 		// ball is left of right paddle
 		if (ballX + BALL_RADIUS < WIDTH - 4) {
@@ -250,7 +322,7 @@ int checkCollisions() {
 			return 1;
 		}
 		
-		} else {
+	} else {
 		
 		// ball is over top of left paddle or under bottom left paddle
 		if ((ballY - BALL_RADIUS > paddleL + PADDLE_LENGTH) || (ballY + BALL_RADIUS < paddleL)) {
@@ -266,14 +338,58 @@ int checkCollisions() {
 
 int checkScore() {
 	// right player score on left wall
-	if (ballX - BALL_RADIUS < 2) {
+	if (ballX - BALL_RADIUS < 3) {
 		scoreR ++;
+
+		if (scoreR == '9'){
+			
+			// set screen red
+			PORTD &= ~(1 << 7);
+			PORTB |= (1 << 0);
+			PORTB |= (1 << 2);
+			
+			draw();
+			
+			_delay_ms(10000);
+			
+			// reset score
+			scoreR = '0';
+			scoreL = '0';
+			
+			// return screen to white
+			PORTD &= ~(1 << 7);
+			PORTB &= ~(1 << 0);
+			PORTB &= ~(1 << 2);
+		}
+		
 		return 1;
 	}
 	
 	// left player score on right wall
-	else if (ballX + BALL_RADIUS > WIDTH - 1) {
+	else if (ballX + BALL_RADIUS > WIDTH - 2) {
 		scoreL ++;
+
+		if (scoreL == '9'){
+			
+			// set screen purple
+			PORTD |= (1 << 7);
+			PORTB |= (1 << 0); 
+			PORTB &= ~(1 << 2); 
+			
+			draw();
+			
+			_delay_ms(10000);
+			
+			// reset score
+			scoreR = '0';
+			scoreL = '0';
+			
+			// return screen to white
+			PORTD &= ~(1 << 7);
+			PORTB &= ~(1 << 0);
+			PORTB &= ~(1 << 2);
+			
+		}
 		return 1;
 	}
 	
@@ -281,108 +397,195 @@ int checkScore() {
 	else {
 		return 0;
 	}
+
 }
 
 // initialize function to play sounds
 void beepTone() {
+	// using B3 output (not pwm?)
+	DDRB |= (1 << 3);
 	
+	for (int i = 0; i < 10; i++){
+		PORTB |= (1 << 3);
+		_delay_ms(5);
+		PORTB &= ~(1 << 3);
+		_delay_ms(5);
+	}	
 }
 
 void checkInput() {
 	
-// using port c, 0 - 3
-// C0 -> X-
-// C1 -> Y+
-// C2 -> X+
-// C3 -> Y-
+	// using port c, 0 - 3
+	// C0 -> X-
+	// C1 -> Y+
+	// C2 -> X+
+	// C3 -> Y-
 
-// step 1: set Xs digital - set X- high and X+ low
+	// step 1: set Xs digital - set X- high and X+ low
 
-DDRC |= (1 << 0) | (1 << 2); // Xs output
-PORTC |= (1 << 0); // X-/C0 high
-PORTC &= ~(1 << 2); // X+/C2 low
+	DDRC |= (1 << 0) | (1 << 2); // Xs output
+	PORTC |= (1 << 0); // X-/C0 high
+	PORTC &= ~(1 << 2); // X+/C2 low
 
-// step 2: set Y- and Y+ to analog input and read Y-
+	// step 2: set Y- and Y+ to analog input and read Y-
 
-DDRC &= ~(1 << 1);
-PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
+	DDRC &= ~(1 << 1);
+	PORTC &= ~(1 << 1); // Y+/C1 to input and disable pull-up
 
-DDRC &= ~(1 << 3);
-PORTC &= ~(1 << 3); // Y-/C3 to input and disable pull-up
+	DDRC &= ~(1 << 3);
+	PORTC &= ~(1 << 3); // Y-/C3 to input and disable pull-up
 
-DIDR0 |= (1 << ADC3D); // disable digital input
+	DIDR0 |= (1 << ADC3D); // disable digital input
 
-ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
-ADCSRA |= (1 << ADEN); // enable system
+	ADMUX |= (1 << MUX0) | (1 << MUX1); // select ADC3 / Y-
+	ADCSRA |= (1 << ADEN); // enable system
 
-ADCSRA |= (1 << ADSC); // start
+	ADCSRA |= (1 << ADSC); // start
 
-while(bit_is_clear(ADCSRA,ADIF)); // stall until conversion is finished
+	while(bit_is_clear(ADCSRA,ADIF)); // stall until conversion is finished
 
-int ycoord = ADC; // store ADC value as y coordinate
-ADCSRA &= ~(1 << ADEN); // disable system
+	int xcoord = ADC; // store ADC value as y coordinate
+	ADCSRA &= ~(1 << ADEN); // disable system
 
-printf("%s", "ycoord = ");
-printf("%d",ycoord);
-printf("\n");
+	// step 3: Ys to digital and Y+ low and Y- high
 
-// step 3: Ys to digital and Y+ low and Y- high
+	DDRC |= (1 << 1); // Y+/C1 to output
+	PORTC &= ~(1 << 1); // Y+/C1 to low
 
-DDRC |= (1 << 1); // Y+/C1 to output
-PORTC &= ~(1 << 1); // Y+/C1 to low
+	DDRC |= (1 << 3); // Y-/C3 to output
+	PORTC |= (1 << 3); // Y-/C3 to high
 
-DDRC |= (1 << 3); // Y-/C3 to output
-PORTC |= (1 << 3); // Y-/C3 to high
+	// step 4:
 
-// step 4:
+	DDRC &= ~(1 << 2);
+	PORTC &= ~(1 << 2); // X+/C2 to input and disable pull-up
 
-DDRC &= ~(1 << 2);
-PORTC &= ~(1 << 2); // X+/C2 to input and disable pull-up
+	DDRC &= ~(1 << 0);
+	PORTC &= ~(1 << 0); // X-/C0 to input and disable pull-up
 
-DDRC &= ~(1 << 0);
-PORTC &= ~(1 << 0); // X-/C0 to input and disable pull-up
+	DIDR0 |= (1 << ADC0D); // disable digital input
 
-DIDR0 |= (1 << ADC0D); // disable digital input
+	ADMUX &= ~(1 << MUX0);
+	ADMUX &= ~(1 << MUX1); // X-/C0 ADC0
+	ADCSRA |= (1 << ADEN); // enable system
+	DIDR0 |= (1 << ADC0D); // disable digital input
 
-ADMUX &= ~(1 << MUX0);
-ADMUX &= ~(1 << MUX1); // X-/C0 ADC0
-ADCSRA |= (1 << ADEN); // enable system
-DIDR0 |= (1 << ADC0D); // disable digital input
+	ADCSRA |= (1 << ADSC); // start.
 
-ADCSRA |= (1 << ADSC); // start.
+	while(bit_is_clear(ADCSRA,ADIF)); // stall
 
-while(bit_is_clear(ADCSRA,ADIF)); // stall
-
-int xcoord = ADC; // store ADC val
-ADCSRA &= ~(1 << ADEN); // disable system
-
-//printf("%s", "xcoord = ");
-//printf("%d",xcoord);
-//printf("\n");
+	int ycoord = ADC; // store ADC val
+	ADCSRA &= ~(1 << ADEN); // disable system
 	
-	// left player
-	if (Xd < WIDTH/4) {
-		// tap above paddle
-		if (Yd < paddleL) {
-			paddleL -= 3;
-		}
+	// shifting from xcoord & ycoord to Xd and Yd
+	// for x: mappin from 150-850 to 1 - 128
+	// for y: mappin from 90 - 900 to 1 - 64
+
+	if (xcoord < 800 && ycoord < 800) { // check that it's even being touched
+
+		Xd = (xcoord - 140)/(float)700 * WIDTH;
+		Yd = (ycoord - 90)/(float)800 * HEIGHT;
+
+			printf("%s", "xd = ");
+			printf("%d",xcoord);
+			printf("\n");
+
+			printf("%s", "yd = ");
+			printf("%d",ycoord);
+			printf("\n");
+	
+
+		// left player
+		if (Xd < WIDTH/4) {
+			// tap above paddle
+			if (Yd < paddleL) {
+				paddleL -= 3;
+			}
 		
-		// tap below paddle
-		else if (Yd > paddleL + PADDLE_LENGTH) {
-			paddleL += 3;
+			// tap below paddle
+			else if (Yd > paddleL + PADDLE_LENGTH) {
+				paddleL += 3;
+			}
+		}
+	
+		// right player
+		else if (Xd > 0.75*WIDTH) {
+			// tap above paddle
+			if (Yd < paddleR) {
+				paddleR -= 3;
+			}
+		
+			// tap below paddle
+			else if (Yd > paddleR + PADDLE_LENGTH ) {
+				paddleR += 3;
+			}
 		}
 	}
+}
+
+void pongBot(void) {
 	
-	// right player
-	else if (Xd > 0.75*WIDTH) {
-		// tap above paddle
-		if (Yd < paddleR) {
-			paddleR -= 3;
+	int botSpeed = 1;
+	
+	if (ballX > WIDTH/2) {
+		// paddle is higher than ball
+		if (paddleR + (PADDLE_LENGTH/2) < ballY) {
+			// move paddle down
+			paddleR += botSpeed;
 		}
-		
-		// tap below paddle
-		else if (Yd > paddleR + PADDLE_LENGTH) {
-			paddleR += 3;
+	
+		// paddle is lower than ball
+		else if (paddleR + (PADDLE_LENGTH/2) > ballY) {
+			// move paddle up
+			paddleR -= botSpeed;
 		}
+	
+		// make sure paddle is in bounds
+		// paddle is too low
+		if (paddleR + PADDLE_LENGTH > HEIGHT - 1) {
+			paddleR = HEIGHT - PADDLE_LENGTH;
+		}
+	
+		// paddle is too high
+		if (paddleR < 2) {
+			paddleR = 2;
+		}
+	}
+}
+
+int accfilt(void){
+	
+	ADCSRA |= (1 << ADEN); // enable system
+	ADMUX &= ~(1 << MUX1);
+	ADMUX |= (1 << MUX0) | (1 << MUX2); // select ADC5
+
+	int arr[10];
+	int sum = 0;
+	
+	for(int j = 0; j < 10; j++){
+
+		ADCSRA |= (1 << ADSC); // start
+
+		while(bit_is_clear(ADCSRA,ADIF)); // stall
+
+		arr[j] = ADC;
+
+		sum = sum + ADC;
+
+	}
+
+	int avera = sum/10;
+	
+	//printf("%s", "accel = ");
+	//printf("%d", avera);
+	
+	if (avera < 305){
+		return -1;
+	}
+	else if (avera > 349){
+		return 1;
+	}
+	else {
+		return 0;
 	}
 }
