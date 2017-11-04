@@ -1,8 +1,7 @@
 /*
- * Pong.c
- *
- * Created: 11/2/2017 4:51:43 PM
- * Author : mylescai
+ * ESE 519 Lab 4
+ * Julian Mickelson
+ * Myles Cai
  */ 
 
 
